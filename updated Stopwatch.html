@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulation Game - Omicron</title>
+    <style>
+        body, html {
+            height: 100%; margin: 0; padding: 0;
+            display: flex; flex-direction: column; align-items: center;
+            background-color: white; font-family: Arial, sans-serif;
+            overflow: hidden; cursor: pointer; user-select: none;
+        }
+        h1 { font-size: 3.5rem; margin-top: 50px; margin-bottom: 5px; font-weight: bold; }
+        #round-label { font-size: 1.5rem; color: #888; margin-bottom: 20px; }
+        #timer { font-size: 25vw; font-weight: bold; font-family: 'Courier New', monospace; margin: auto; }
+        #logo { position: absolute; bottom: 30px; right: 30px; width: 280px; }
+
+        /* Vollbild-Button Style */
+        #fullscreen-btn {
+            position: absolute;
+            bottom: 30px;
+            left: 30px;
+            padding: 10px 15px;
+            background-color: rgba(0, 0, 0, 0.05);
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            color: #888;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            z-index: 100;
+        }
+        #fullscreen-btn:hover {
+            background-color: rgba(0, 0, 0, 0.1);
+            color: #555;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Simulation Game</h1>
+    <div id="round-label">Round 1</div>
+    <div id="timer">00:00</div>
+
+    <button id="fullscreen-btn">Fullscreen on/off</button>
+
+    <img src="image_2246b9.png" id="logo" alt="Omicron Logo">
+
+    <audio id="bgMusic" loop>
+        <source src="music.mp3" type="audio/mpeg">
+    </audio>
+
+    <script>
+        // --- EINSTELLUNGEN ---
+        const LIMIT = 20 * 60;   // 20 Minuten
+        const MUSIC_VOL = 0.3;   // 30% der Originallautstärke
+        const BEEP_VOL = 2.0;    // Lautstärke des Beeps
+        
+        let secondsPassed = 0; 
+        let currentRound = 1;
+        let isRunning = false;
+        let timerInterval, audioCtx;
+
+        const timerDisplay = document.getElementById('timer');
+        const roundLabel = document.getElementById('round-label');
+        const bgMusic = document.getElementById('bgMusic');
+        const fsBtn = document.getElementById('fullscreen-btn');
+
+        // Vollbild Logik
+        fsBtn.addEventListener('click', (e) => {
+            e.stopPropagation(); // Verhindert, dass der Timer beim Klicken auf den Button toggelt
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => {
+                    alert(`Fehler beim Aktivieren des Vollbildmodus: ${err.message}`);
+                });
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                }
+            }
+        });
+
+        function initAudio() {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            bgMusic.volume = MUSIC_VOL;
+        }
+
+        function playBeep(freq = 900, duration = 1.5) {
+            if (!audioCtx) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            
+            gain.gain.setValueAtTime(BEEP_VOL, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + duration);
+        }
+
+        function updateDisplay() {
+            const mins = Math.floor(secondsPassed / 60);
+            const secs = secondsPassed % 60;
+            timerDisplay.textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+
+            if (secs === 0 && secondsPassed > 0 && mins <= 18) {
+                playBeep(900, 0.5); 
+            }
+        }
+
+        function toggleTimer() {
+            initAudio();
+
+            if (isRunning) {
+                clearInterval(timerInterval);
+                bgMusic.pause();
+                isRunning = false;
+            } else {
+                isRunning = true;
+                bgMusic.play();
+                timerInterval = setInterval(() => {
+                    if (secondsPassed < LIMIT) {
+                        secondsPassed++;
+                        updateDisplay();
+                    } else {
+                        nextRound();
+                    }
+                }, 1000);
+            }
+        }
+
+        // Klick auf Body toggelt den Timer (außer wenn auf den FS-Button geklickt wird)
+        document.body.addEventListener('click', toggleTimer);
+    </script>
+</body>
+</html>
