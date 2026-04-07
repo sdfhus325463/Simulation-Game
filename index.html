@@ -114,6 +114,20 @@
             }
         }
 
+        // --- Die eingefügte nextRound() Funktion ---
+        function nextRound() {
+            clearInterval(timerInterval); // Stoppt die Intervall-Schleife
+            bgMusic.pause();              // Stoppt die Musik
+            bgMusic.currentTime = 0;      // Spult Musik zum Anfang zurück
+            isRunning = false;            // Setzt den Status auf "pausiert"
+
+            secondsPassed = 0;            // Setzt die Sekunden zurück
+            updateDisplay();              // Zeigt wieder 00:00 an
+
+            currentRound++;               // Zählt die Runde hoch
+            roundLabel.textContent = 'Round ' + currentRound; // Aktualisiert den Text (z.B. Round 2)
+        }
+
         function toggleTimer() {
             initAudio();
 
@@ -129,7 +143,7 @@
                         secondsPassed++;
                         updateDisplay();
                     } else {
-                        nextRound();
+                        nextRound(); // Ruft jetzt erfolgreich die Funktion oben auf
                     }
                 }, 1000);
             }
